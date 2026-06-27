@@ -26,7 +26,7 @@
   <div class="card">
     <div class="flash flash-error"></div>
     <form method="post">
-      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <input type="hidden" name="csrf" value="">
       <div class="row"><label>Email</label><input type="email" name="email" required autocomplete="email"></div>
       <div class="row"><label>Password</label><input type="password" name="password" required autocomplete="current-password"></div>
       <button class="btn-primary" type="submit" style="width:100%">Sign in</button>
