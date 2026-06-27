@@ -1,38 +1,3 @@
-<?php 
-
-require_once __DIR__ . '/includes/auth.php';
-$err = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    check_csrf();
-    $name  = trim($_POST['full_name'] ?? '');
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    $pw    = $_POST['password'] ?? '';
-    $phone = trim($_POST['phone'] ?? '') ?: null;
-    $nid   = trim($_POST['nid'] ?? '') ?: null;
-
-    if (strlen($name) < 2 || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($pw) < 6) {
-        $err = 'Please fill all fields (password >= 6 chars).';
-    } else {
-        try {
-            $hash = password_hash($pw, PASSWORD_BCRYPT);
-            db_exec(
-              'CALL Add_User(:n, :e, :h, :p, :nid, @uid)',
-              [':n'=>$name, ':e'=>$email, ':h'=>$hash, ':p'=>$phone, ':nid'=>$nid],
-              [':uid'=>'@uid']
-            );
-            flash('Account created. Please sign in.', 'success');
-            header('Location: login.php'); exit;
-        } catch (Throwable $ex) {
-            $err = 'Could not register: ' . $ex->getMessage();
-        }
-    }
-
-}
-
-
-?>
-
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -49,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p>Join CitySphere as a citizen — admins can grant more roles later</p>
   </div>
   <div class="card">
-    <?php if ($err): ?><div class="flash flash-error"><?= e($err) ?></div><?php endif; ?>
+  <div class="flash flash-error"></div>
     <form method="post">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <div class="row"><label>Full name</label><input type="text" name="full_name" required autocomplete="name"></div>

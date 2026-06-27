@@ -1,23 +1,6 @@
 <?php 
 
-require_once __DIR__ . '/includes/auth.php';
-$err='';
 
-if($_SERVER['REQUEST_METHOD']==='POST'){
-  check_csrf();
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    $pw    = $_POST['password'] ?? '';
-    $rows=db_select(
-      'SELECT user_id, full_name, email, password_hash FROM users WHERE email = :em',
-      [':em' => $email]
-    );
-    if($rows && password_verify($pw,$rows[0]['PASSWORD_HASH'])){
-      login_user($rows[0]);
-    }
-    $err='Invalid email or password.';
-
-
-}
 
 
 ?>
@@ -41,7 +24,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     <p>Sign in to access your CitySphere dashboard</p>
   </div>
   <div class="card">
-     <?php if ($err): ?><div class="flash flash-error"><?= e($err) ?></div><?php endif; ?>
+    <div class="flash flash-error"></div>
     <form method="post">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <div class="row"><label>Email</label><input type="email" name="email" required autocomplete="email"></div>

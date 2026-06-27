@@ -233,6 +233,7 @@ a:hover { color: #ffffff; text-decoration: underline; }
   box-shadow: var(--shadow);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeIn 0.5s ease-out;
+  color: #ffffff;
 }
 .card:hover {
   box-shadow: var(--shadow-hover);
@@ -255,7 +256,6 @@ a:hover { color: #ffffff; text-decoration: underline; }
 .grid { display: grid; gap: 24px; }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-
 
 .stat {
   background: rgba(255,255,255,0.05);
@@ -297,7 +297,6 @@ a:hover { color: #ffffff; text-decoration: underline; }
   margin-top: 8px;
 }
 
-
 form .row {
   display: flex;
   flex-direction: column;
@@ -308,7 +307,7 @@ form .row {
 form label {
   font-weight: 700;
   font-size: 0.82rem;
-  color: #93c5fd;
+  color: #ecf0f6;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-left: 2px;
@@ -329,7 +328,7 @@ input[type=date], input[type=file], select, textarea {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 input::placeholder, textarea::placeholder {
-  color: rgba(147, 197, 253, 0.4);
+  color: rgb(248, 244, 243);
 }
 select option {
   background: #0f1f3d;
@@ -350,7 +349,6 @@ input:focus, select:focus, textarea:focus {
     0 8px 25px rgba(0,0,0,0.25);
 }
 textarea { min-height: 140px; resize: vertical; }
-
 
 .table-wrap {
   overflow-x: auto;
@@ -390,6 +388,7 @@ tr:last-child td { border-bottom: none; }
 .b-pending  { background: rgba(251,191,36,0.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
 .b-paid, .b-solved, .b-verified { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
 .b-overdue, .b-rejected { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
 
 .flash {
   padding: 16px 20px;
@@ -574,7 +573,6 @@ hr { border: none; border-top: 1px solid rgba(59, 130, 246, 0.15); margin: 32px 
   .nav { order: 3; width: 100%; justify-content: center; margin-top: 10px; }
   .userbox { width: 100%; justify-content: flex-end; }
 }
-
 
 .announcement-card { border-left: 4px solid #3b82f6; }
 .announcement-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
