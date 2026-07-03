@@ -1,5 +1,14 @@
 <?php 
 
+require_once __DIR__ . '/includes/auth.php';
+$err = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        $user = authenticate($_POST['email'] ?? '', $_POST['password'] ?? '');
+        if ($user) { login_user($user); header('Location: dashboard.php'); exit; }
+        $err = 'Invalid email or password.';
+    } catch (Throwable $e) { $err = 'Login failed. Please try again.'; }
+}
 
 
 
