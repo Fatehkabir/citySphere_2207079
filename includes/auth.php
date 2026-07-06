@@ -16,8 +16,8 @@ function load_roles_for(int $uid): array {
     return array_column($rows, 'ROLE');
 }
 function login_user(array $user): void {
-    session_regenerate_id(true);         
+    session_regenerate_id(true);       
     $_SESSION['user']  = $user;
-    $_SESSION['roles'] = load_roles_for((int)$user['USER_ID']);
+    $_SESSION['roles'] = load_roles_for((string)$user['NID']);
 }
 ?>
