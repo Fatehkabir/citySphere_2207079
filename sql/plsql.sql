@@ -58,3 +58,42 @@ CREATE OR REPLACE PACKAGE pkg_auth AS
 
 END pkg_auth;
  /    
+
+
+
+
+
+ CREATE OR REPLACE PACKAGE pkg_dashboard AS
+    PROCEDURE sp_get_dashboard_stats(
+        p_total_reports   OUT NUMBER, p_pending_reports OUT NUMBER,
+        p_total_areas     OUT NUMBER, p_total_buildings  OUT NUMBER);
+    PROCEDURE sp_get_my_recent_reports(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
+END pkg_dashboard;
+/
+CREATE OR REPLACE PACKAGE BODY pkg_dashboard AS
+
+    PROCEDURE sp_get_dashboard_stats(
+        p_total_reports   OUT NUMBER, p_pending_reports OUT NUMBER,
+        p_total_areas     OUT NUMBER, p_total_buildings  OUT NUMBER)
+    IS
+    BEGIN
+        SELECT COUNT(*) INTO p_total_reports   FROM crime_reports;
+        SELECT COUNT(*) INTO p_pending_reports  FROM crime_reports WHERE status = 'pending';
+        SELECT COUNT(*) INTO p_total_areas      FROM areas;
+        SELECT COUNT(*) INTO p_total_buildings  FROM buildings;
+    END;
+
+    PROCEDURE sp_get_my_recent_reports(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR) IS
+    BEGIN
+        OPEN p_cur FOR
+             SELECT * FROM (
+                 SELECT report_id, title, status,
+                        TO_CHAR(created_at,'YYYY-MM-DD HH24:MI') AS ts
+                   FROM crime_reports
+                  WHERE reporter_nid = p_nid
+                  ORDER BY created_at DESC
+             ) WHERE ROWNUM <= 5;
+    END;
+
+END pkg_dashboard;
+/

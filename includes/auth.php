@@ -15,6 +15,8 @@ function load_roles_for(int $uid): array {
     );
     return array_column($rows, 'ROLE');
 }
+function current_roles(): array  { return $_SESSION['roles'] ?? []; }
+function has_role(string $r): bool { return in_array($r, current_roles(), true); }
 function login_user(array $user): void {
     session_regenerate_id(true);       
     $_SESSION['user']  = $user;
@@ -34,6 +36,25 @@ function revoke_role(string $adminNid, string $nid, string $role): void {
         ['a' => $adminNid, 'u' => $nid, 'r' => $role]
     );
 }
+
+
+function require_login(): void {
+    if (!current_user()) { header('Location: login.php'); exit; }
+}
+
+function current_user(): ?array {
+    $u = $_SESSION['user'] ?? null;
+    if ($u !== null && !array_key_exists('NID', $u)) {
+        session_destroy();
+        return null;
+    }
+    return $u;
+}
+function current_user_nid(): ?string {
+    $u = current_user();
+    return ($u && isset($u['NID'])) ? (string)$u['NID'] : null;
+}
+
 
 
 

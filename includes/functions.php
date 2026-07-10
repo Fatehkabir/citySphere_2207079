@@ -41,6 +41,37 @@ function fetch_cursor(string $sql, array $binds = []): array {
     return $rows;
 }
 
+function exec_plsql(string $sql, array $binds = [], array $out_names = []): array {
+    $conn = db();
+    $stmt = oci_parse($conn, $sql);
+    if (!$stmt) {
+        $e = oci_error($conn);
+        throw new RuntimeException('oci_parse failed: ' . $e['message']);
+    }
+
+    $locals = [];
+    foreach ($binds as $name => $value) {
+        $locals[$name] = $value;
+        oci_bind_by_name($stmt, ':' . $name, $locals[$name]);
+    }
+
+    $out_locals = [];
+    foreach ($out_names as $name) {
+        $out_locals[$name] = null;
+        oci_bind_by_name($stmt, ':' . $name, $out_locals[$name], 4000);
+    }
+
+    if (!oci_execute($stmt, OCI_DEFAULT)) {
+        $e = oci_error($stmt);
+        oci_free_statement($stmt);
+        throw new RuntimeException('exec_plsql [' . $sql . ']: ' . $e['message']);
+    }
+
+    oci_commit($conn);
+    oci_free_statement($stmt);
+    return $out_locals;
+}
+
 function run_plsql(string $sql, array $binds = []): void {
     $conn = db();
     $stmt = oci_parse($conn, $sql);
@@ -79,5 +110,29 @@ function register_user(string $nid, string $name, string $email,
          'p'   => $phone ?: null]
     );
 }
+
+
+
+function get_dashboard_stats(): array {
+    $out = exec_plsql(
+        'BEGIN pkg_dashboard.sp_get_dashboard_stats(:tr,:pr,:ta,:tb); END;',
+        [],
+        ['tr', 'pr', 'ta', 'tb']
+    );
+    return [
+        'reports'   => (int)($out['tr'] ?? 0),
+        'pending'   => (int)($out['pr'] ?? 0),
+        'areas'     => (int)($out['ta'] ?? 0),
+        'buildings' => (int)($out['tb'] ?? 0),
+    ];
+}
+function get_my_recent_reports(string $nid): array {
+    return fetch_cursor(
+        'BEGIN pkg_dashboard.sp_get_my_recent_reports(:nid, :cur); END;',
+        ['nid' => $nid]
+    );
+}
+
+
 
 ?>
