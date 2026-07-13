@@ -133,6 +133,11 @@ function get_my_recent_reports(string $nid): array {
     );
 }
 
-
+function add_area(string $adminNid, int $areaId, string $name, string $city): void {
+    run_plsql(
+        'BEGIN pkg_city.sp_add_area(:a,:aid,:n,:c); END;',
+        ['a' => $adminNid, 'aid' => $areaId, 'n' => $name, 'c' => $city]
+    );
+}
 
 ?>

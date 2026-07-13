@@ -41,6 +41,13 @@ function revoke_role(string $adminNid, string $nid, string $role): void {
 function require_login(): void {
     if (!current_user()) { header('Location: login.php'); exit; }
 }
+function require_role(string $role): void {
+    require_login();
+    if (!has_role($role) && !has_role('admin')) {
+        http_response_code(403); die('403 – Forbidden');
+    }
+}
+
 
 function current_user(): ?array {
     $u = $_SESSION['user'] ?? null;

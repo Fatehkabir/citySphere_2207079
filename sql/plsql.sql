@@ -1,4 +1,5 @@
 CREATE OR REPLACE PACKAGE pkg_auth AS
+ FUNCTION  fn_has_role(p_nid VARCHAR2, p_role VARCHAR2) RETURN NUMBER;
  PROCEDURE sp_register_user(p_nid IN VARCHAR2, p_name IN VARCHAR2, p_email IN VARCHAR2, p_hash IN VARCHAR2, p_phone IN VARCHAR2);
  PROCEDURE sp_get_roles_for_user(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
  PROCEDURE sp_grant_role(p_admin_nid IN VARCHAR2, p_nid IN VARCHAR2, p_role IN VARCHAR2);
@@ -96,4 +97,36 @@ CREATE OR REPLACE PACKAGE BODY pkg_dashboard AS
     END;
 
 END pkg_dashboard;
+/
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_city AS
+  
+    PROCEDURE sp_add_area(
+        p_admin_nid IN VARCHAR2, p_area_id IN NUMBER,
+        p_name IN VARCHAR2, p_city IN VARCHAR2);
+
+END pkg_city;
+/
+CREATE OR REPLACE PACKAGE BODY pkg_city AS
+
+    PROCEDURE sp_add_area(
+        p_admin_nid IN VARCHAR2, p_area_id IN NUMBER,
+        p_name IN VARCHAR2, p_city IN VARCHAR2)
+    IS
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20002,'Only admin can manage areas');
+        END IF;
+        INSERT INTO areas(area_id, name, city) VALUES (p_area_id, p_name, p_city);
+    END;
+
+
+
+END pkg_city;
 /

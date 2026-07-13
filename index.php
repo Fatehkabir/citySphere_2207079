@@ -1,23 +1,43 @@
+<?php
+require_once __DIR__ . '/includes/auth.php';
+if (current_user()) { header('Location: dashboard.php'); exit; }
+?>
 <!doctype html><html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CitySphere</title><link rel="stylesheet" href="assets/css/style.css"></head>
-<body class="landing">
-<section class="landing-hero">
-  <span style="font-size:3rem">🏙</span>
-  <h1>Manage your city in one place</h1>
-  <p class="lead">Citizens file reports, property owners manage rentals, and police review cases — all connected through a secure role-based platform.</p>
-  <div class="landing-actions">
-    <a class="btn-primary btn-lg" href="login.php">Sign in</a>
-    <a class="btn btn-lg" href="signup.php" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff">Create account</a>
+<body style="background:#f8fafc">
+<div style="max-width:700px;margin:0 auto;padding:60px 20px;text-align:center">
+  <div style="font-size:3rem;margin-bottom:12px">🏙</div>
+  <h1 style="font-size:2rem;font-weight:700;margin:0 0 12px;color:#1e293b">CitySphere</h1>
+  <p style="color:#64748b;font-size:1rem;margin:0 0 32px;line-height:1.7">
+    Citizens file reports, property owners manage rentals, and police review cases —<br>
+    all connected through a secure role-based platform.
+  </p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:48px">
+    <a class="btn-primary" href="login.php" style="padding:10px 24px;border-radius:4px;font-weight:600;text-decoration:none;display:inline-block">Sign in</a>
+    <a class="btn" href="signup.php" style="padding:10px 24px;border-radius:4px;font-weight:600;text-decoration:none;display:inline-block">Create account</a>
   </div>
-</section>
-<section class="landing-features">
-  <div class="feature-card"><div class="icon">📋</div><h3>Crime reports</h3>
-    <p>File reports anonymously or with your account. Police verify and track status in real time.</p></div>
-  <div class="feature-card"><div class="icon">🏠</div><h3>Property & rentals</h3>
-    <p>House owners assign renters, track units, and update payment status from one dashboard.</p></div>
-  <div class="feature-card"><div class="icon">👮</div><h3>Role-based access</h3>
-    <p>Admins, police, owners, and citizens each see only what they need — enforced in the database.</p></div>
-</section>
-<footer class="footer"><small>&copy; <?= date('Y') ?> CitySphere</small></footer>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;text-align:left">
+    <div class="card">
+      <div style="font-size:1.8rem;margin-bottom:8px">📋</div>
+      <h3 style="margin:0 0 6px;font-size:1rem;font-weight:600">Crime Reports</h3>
+      <p style="margin:0;color:#64748b;font-size:.9rem">File reports anonymously or with your account. Police verify and track status.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:1.8rem;margin-bottom:8px">🏠</div>
+      <h3 style="margin:0 0 6px;font-size:1rem;font-weight:600">Property &amp; Rentals</h3>
+      <p style="margin:0;color:#64748b;font-size:.9rem">House owners assign renters, track units, and update payment status.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:1.8rem;margin-bottom:8px">👮</div>
+      <h3 style="margin:0 0 6px;font-size:1rem;font-weight:600">Role-Based Access</h3>
+      <p style="margin:0;color:#64748b;font-size:.9rem">Admins, police, owners, and citizens each see only what they need.</p>
+    </div>
+  </div>
+
+  <footer style="margin-top:48px;color:#94a3b8;font-size:.85rem">
+    &copy; <?= date('Y') ?> CitySphere
+  </footer>
+</div>
 </body></html>
