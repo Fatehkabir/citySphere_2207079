@@ -62,7 +62,7 @@ END pkg_auth;
 
 
 
-
+-- ----------------------------------------------------------------------------------------
 
  CREATE OR REPLACE PACKAGE pkg_dashboard AS
     PROCEDURE sp_get_dashboard_stats(
@@ -103,7 +103,7 @@ END pkg_dashboard;
 
 
 
-
+-- --------------------------------------------------------------------------------
 
 CREATE OR REPLACE PACKAGE pkg_city AS
   
@@ -129,4 +129,47 @@ CREATE OR REPLACE PACKAGE BODY pkg_city AS
 
 
 END pkg_city;
+/
+
+-- ---------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PACKAGE pkg_announcements AS
+    PROCEDURE sp_post_announcement(
+        p_id IN NUMBER, p_title IN VARCHAR2, p_content IN CLOB,
+        p_target_role IN VARCHAR2, p_created_by IN VARCHAR2);
+    PROCEDURE sp_get_announcements_for_user(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
+END pkg_announcements;
+/
+CREATE OR REPLACE PACKAGE BODY pkg_announcements AS
+
+    PROCEDURE sp_post_announcement(
+        p_id IN NUMBER, p_title IN VARCHAR2, p_content IN CLOB,
+        p_target_role IN VARCHAR2, p_created_by IN VARCHAR2)
+    IS
+    BEGIN
+        IF pkg_auth.fn_has_role(p_created_by, 'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20016, 'Only admin can post announcements');
+        END IF;
+        INSERT INTO announcements(id, title, content, target_role, created_by)
+        VALUES (p_id, p_title, p_content, p_target_role, p_created_by);
+    END;
+
+    PROCEDURE sp_get_announcements_for_user(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR) IS
+    BEGIN
+        OPEN p_cur FOR
+            SELECT a.id, a.title,
+                   DBMS_LOB.SUBSTR(a.content, 2000, 1) AS content,
+                   a.target_role, a.created_by, a.created_at,
+                   u.full_name AS author,
+                   TO_CHAR(a.created_at,'Mon DD, YYYY HH24:MI') AS ts
+              FROM announcements a
+              JOIN users u ON a.created_by = u.nid
+             WHERE a.target_role = 'all'
+                OR a.target_role IN (
+                       SELECT role FROM user_roles WHERE user_nid = p_nid
+                   )
+             ORDER BY a.created_at DESC;
+    END;
+
+END pkg_announcements;
 /

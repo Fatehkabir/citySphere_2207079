@@ -140,4 +140,39 @@ function add_area(string $adminNid, int $areaId, string $name, string $city): vo
     );
 }
 
+
+
+function get_announcements_for_user(string $nid): array {
+    return fetch_cursor(
+        'BEGIN pkg_announcements.sp_get_announcements_for_user(:nid, :cur); END;',
+        ['nid' => $nid]
+    );
+}
+
+function post_announcement(int $annId, string $title, string $content,
+                            string $role, string $nid): void {
+    $conn = db();
+    $stmt = oci_parse($conn,
+        'BEGIN pkg_announcements.sp_post_announcement(:id,:t,:c,:r,:u); END;');
+
+    $idL = $annId; $tL = $title; $rL = $role; $uL = $nid;
+    oci_bind_by_name($stmt, ':id', $idL);
+    oci_bind_by_name($stmt, ':t',  $tL);
+    oci_bind_by_name($stmt, ':r',  $rL);
+    oci_bind_by_name($stmt, ':u',  $uL);
+
+    $cLob = make_clob($content);
+    oci_bind_by_name($stmt, ':c', $cLob, -1, OCI_B_CLOB);
+
+    if (!oci_execute($stmt, OCI_DEFAULT)) {
+        $e = oci_error($stmt);
+        $cLob->close();
+        oci_free_statement($stmt);
+        throw new RuntimeException('post_announcement: ' . $e['message']);
+    }
+    oci_commit($conn);
+    $cLob->close();
+    oci_free_statement($stmt);
+}
+
 ?>
