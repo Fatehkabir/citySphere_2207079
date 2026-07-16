@@ -133,6 +133,17 @@ function get_my_recent_reports(string $nid): array {
     );
 }
 
+//---------------------------------------------------------------
+
+function get_areas(): array {
+    return fetch_cursor('BEGIN pkg_city.sp_get_areas(:cur); END;');
+}
+
+function get_area_list(): array {
+    return fetch_cursor('BEGIN pkg_city.sp_get_area_list(:cur); END;');
+}
+
+
 function add_area(string $adminNid, int $areaId, string $name, string $city): void {
     run_plsql(
         'BEGIN pkg_city.sp_add_area(:a,:aid,:n,:c); END;',
@@ -140,7 +151,7 @@ function add_area(string $adminNid, int $areaId, string $name, string $city): vo
     );
 }
 
-
+//---------------------------------------------------------------
 
 function get_announcements_for_user(string $nid): array {
     return fetch_cursor(
@@ -173,6 +184,134 @@ function post_announcement(int $annId, string $title, string $content,
     oci_commit($conn);
     $cLob->close();
     oci_free_statement($stmt);
+}
+
+
+
+//---------------------------------------------------------------
+function get_buildings(?string $ownerNid = null): array {
+    $owner = $ownerNid;
+    return fetch_cursor(
+        'BEGIN pkg_city.sp_get_buildings(:owner, :cur); END;',
+        ['owner' => $owner]
+    );
+}
+
+function get_building_list(?string $ownerNid = null): array {
+    $owner = $ownerNid;
+    return fetch_cursor(
+        'BEGIN pkg_city.sp_get_building_list(:owner, :cur); END;',
+        ['owner' => $owner]
+    );
+}
+
+function add_building(string $adminNid, int $buildingId, string $name,
+                       string $address, int $areaId,
+                       string $ownerNid, int $units): void {
+    run_plsql(
+        'BEGIN pkg_city.sp_add_building(:a,:bid,:n,:addr,:ar,:o,:u); END;',
+        ['a'   => $adminNid, 'bid' => $buildingId,
+         'n'   => $name,     'addr' => $address,
+         'ar'  => $areaId,   'o'    => $ownerNid,
+         'u'   => $units]
+    );
+}
+//---------------------------------------------------------------
+function get_criminal_records(?string $nid = null): array {
+    if ($nid === null) {
+        return fetch_cursor('BEGIN pkg_criminals.sp_get_all_criminal_records(:cur); END;');
+    }
+    return fetch_cursor(
+        'BEGIN pkg_criminals.sp_get_citizen_records(:nid, :cur); END;',
+        ['nid' => $nid]
+    );
+}
+
+function add_criminal_record(string $policeNid, int $recordId, string $citizenNid,
+                               ?int $reportId, string $offense, string $desc): void {
+    $rid  = $reportId ?? 0;
+    $conn = db();
+    $stmt = oci_parse($conn,
+        'BEGIN pkg_criminals.sp_add_criminal_record(:p,:rec,:c,:r,:o,:d); END;');
+
+    $pL = $policeNid; $recL = $recordId; $cL = $citizenNid;
+    $rL = $rid; $oL = $offense;
+    oci_bind_by_name($stmt, ':p',   $pL);
+    oci_bind_by_name($stmt, ':rec', $recL);
+    oci_bind_by_name($stmt, ':c',   $cL);
+    oci_bind_by_name($stmt, ':r',   $rL);
+    oci_bind_by_name($stmt, ':o',   $oL);
+
+    $descLob = make_clob($desc);
+    oci_bind_by_name($stmt, ':d', $descLob, -1, OCI_B_CLOB);
+
+    if (!oci_execute($stmt, OCI_DEFAULT)) {
+        $e = oci_error($stmt);
+        $descLob->close();
+        oci_free_statement($stmt);
+        throw new RuntimeException('add_criminal_record: ' . $e['message']);
+    }
+    oci_commit($conn);
+    $descLob->close();
+    oci_free_statement($stmt);
+}
+
+//---------------------------------------------------------------
+
+function file_report(int $reportId, string $reporterNid, bool $anonymous,
+                      int $areaId, string $title, string $desc): void {
+    $anon = $anonymous ? 1 : 0;
+    $rid  = $anonymous ? null : $reporterNid;
+
+    $conn = db();
+    $stmt = oci_parse($conn,
+        'BEGIN pkg_reports.sp_file_report(:rid,:r,:a,:ar,:t,:d); END;');
+
+    $ridL = $reportId; $rLocal = $rid; $aLocal = $anon;
+    $arLocal = $areaId; $tLocal = $title;
+    oci_bind_by_name($stmt, ':rid', $ridL);
+    oci_bind_by_name($stmt, ':r',   $rLocal);
+    oci_bind_by_name($stmt, ':a',   $aLocal);
+    oci_bind_by_name($stmt, ':ar',  $arLocal);
+    oci_bind_by_name($stmt, ':t',   $tLocal);
+
+    $descLob = make_clob($desc);
+    oci_bind_by_name($stmt, ':d', $descLob, -1, OCI_B_CLOB);
+
+    if (!oci_execute($stmt, OCI_DEFAULT)) {
+        $e = oci_error($stmt);
+        $descLob->close();
+        oci_free_statement($stmt);
+        throw new RuntimeException('file_report: ' . $e['message']);
+    }
+    oci_commit($conn);
+    $descLob->close();
+    oci_free_statement($stmt);
+}
+
+function get_reports(?string $nid = null): array {
+    if ($nid === null) {
+        return fetch_cursor('BEGIN pkg_reports.sp_get_all_reports(:cur); END;');
+    }
+    return fetch_cursor(
+        'BEGIN pkg_reports.sp_get_my_reports(:nid, :cur); END;',
+        ['nid' => $nid]
+    );
+}
+
+function get_police_queue(): array {
+    return fetch_cursor('BEGIN pkg_reports.sp_get_police_queue(:cur); END;');
+}
+
+function get_verified_reports(): array {
+    return fetch_cursor('BEGIN pkg_reports.sp_get_verified_reports(:cur); END;');
+}
+
+function update_report_status(string $policeNid, int $reportId, string $action): void {
+    run_plsql(
+        'BEGIN pkg_reports.sp_review_report(:p,:r,:a); END;',
+        ['p' => $policeNid, 'r' => $reportId, 'a' => $action]
+    );
 }
 
 ?>
