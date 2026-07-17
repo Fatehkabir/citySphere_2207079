@@ -28,7 +28,15 @@ function login_user(array $user): void {
     $_SESSION['user']  = $user;
     $_SESSION['roles'] = load_roles_for((string)$user['NID']);
 }
-
+function logout_user(): void {
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+    }
+    session_destroy();
+}
 
 function revoke_role(string $adminNid, string $nid, string $role): void {
     run_plsql(
