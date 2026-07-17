@@ -401,3 +401,138 @@ CREATE OR REPLACE PACKAGE BODY pkg_reports AS
 
 END pkg_reports;
 /
+
+
+
+-- ---------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PACKAGE pkg_rentals AS
+    PROCEDURE sp_assign_renter(
+        p_owner_nid   IN VARCHAR2, p_rental_id   IN NUMBER,
+        p_building_id IN NUMBER,   p_renter_nid  IN VARCHAR2,
+        p_unit_no     IN VARCHAR2, p_amount      IN NUMBER);
+    PROCEDURE sp_update_payment(
+        p_actor_nid IN VARCHAR2, p_rental_id IN NUMBER, p_status IN VARCHAR2);
+    PROCEDURE sp_end_rental(p_rental_id IN NUMBER);
+    PROCEDURE sp_get_all_rentals(p_cur OUT SYS_REFCURSOR);
+    PROCEDURE sp_get_my_rentals(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
+    PROCEDURE sp_audit_pending_rentals(
+        p_admin_nid IN VARCHAR2, p_processed OUT NUMBER);
+END pkg_rentals;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_rentals AS
+
+    PROCEDURE sp_assign_renter(
+        p_owner_nid   IN VARCHAR2, p_rental_id   IN NUMBER,
+        p_building_id IN NUMBER,   p_renter_nid  IN VARCHAR2,
+        p_unit_no     IN VARCHAR2, p_amount      IN NUMBER)
+    IS
+        v_owner VARCHAR2(6);
+        v_units NUMBER;
+    BEGIN
+        SELECT owner_nid, total_units INTO v_owner, v_units FROM buildings WHERE building_id = p_building_id;
+        IF v_owner <> p_owner_nid AND pkg_auth.fn_has_role(p_owner_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20004,'Only the building owner can assign renters');
+        END IF;
+        IF v_units <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20015,'No available units in this building');
+        END IF;
+        IF p_amount <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20005,'Rent amount must be positive');
+        END IF;
+        INSERT INTO rentals(rental_id, building_id, renter_nid, unit_no, rent_amount)
+        VALUES (p_rental_id, p_building_id, p_renter_nid, p_unit_no, p_amount);
+        
+        UPDATE buildings SET total_units = total_units - 1 WHERE building_id = p_building_id;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20009,'Building not found');
+    END;
+
+    PROCEDURE sp_update_payment(
+        p_actor_nid IN VARCHAR2, p_rental_id IN NUMBER, p_status IN VARCHAR2)
+    IS
+        v_owner  VARCHAR2(6);
+        v_renter VARCHAR2(6);
+    BEGIN
+        SELECT b.owner_nid, r.renter_nid INTO v_owner, v_renter
+          FROM rentals r JOIN buildings b ON r.building_id = b.building_id
+         WHERE r.rental_id = p_rental_id;
+        IF p_actor_nid NOT IN (v_owner, v_renter)
+           AND pkg_auth.fn_has_role(p_actor_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20006,'Not allowed to update this payment');
+        END IF;
+        UPDATE rentals SET payment_status = p_status WHERE rental_id = p_rental_id;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20009,'Rental not found');
+    END;
+
+    PROCEDURE sp_end_rental(p_rental_id IN NUMBER) IS
+        v_bid NUMBER;
+        v_status VARCHAR2(10);
+    BEGIN
+        SELECT building_id, status INTO v_bid, v_status FROM rentals WHERE rental_id = p_rental_id;
+        IF v_status = 'active' THEN
+            UPDATE rentals SET status = 'ended' WHERE rental_id = p_rental_id;
+            UPDATE buildings SET total_units = total_units + 1 WHERE building_id = v_bid;
+        END IF;
+    END;
+
+    PROCEDURE sp_get_all_rentals(p_cur OUT SYS_REFCURSOR) IS
+    BEGIN
+        OPEN p_cur FOR
+            SELECT r.rental_id, r.unit_no, r.rent_amount, r.payment_status,
+                   r.status AS r_status,
+                   TO_CHAR(r.start_date,'YYYY-MM-DD') AS sd,
+                   b.name AS bname, u.full_name AS renter, o.full_name AS owner
+              FROM rentals r
+              JOIN buildings b ON b.building_id = r.building_id
+              JOIN users    u ON u.nid          = r.renter_nid
+              JOIN users    o ON o.nid          = b.owner_nid
+             ORDER BY r.created_at DESC;
+    END;
+
+    PROCEDURE sp_get_my_rentals(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR) IS
+    BEGIN
+        OPEN p_cur FOR
+            SELECT r.rental_id, r.unit_no, r.rent_amount, r.payment_status,
+                   r.status AS r_status,
+                   TO_CHAR(r.start_date,'YYYY-MM-DD') AS sd,
+                   b.name AS bname, u.full_name AS renter, o.full_name AS owner
+              FROM rentals r
+              JOIN buildings b ON b.building_id = r.building_id
+              JOIN users    u ON u.nid          = r.renter_nid
+              JOIN users    o ON o.nid          = b.owner_nid
+             WHERE b.owner_nid = p_nid OR r.renter_nid = p_nid
+             ORDER BY r.created_at DESC;
+    END;
+
+    PROCEDURE sp_audit_pending_rentals(p_admin_nid IN VARCHAR2, p_processed OUT NUMBER) IS
+        v_rental_id rentals.rental_id%TYPE;
+        v_amount    rentals.rent_amount%TYPE;
+        v_lid       NUMBER;
+        CURSOR c_pending IS
+            SELECT rental_id, rent_amount FROM rentals
+             WHERE payment_status = 'pending' AND status = 'active';
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20007,'Only admin can run audit');
+        END IF;
+        p_processed := 0;
+        OPEN c_pending;
+        LOOP
+            FETCH c_pending INTO v_rental_id, v_amount;
+            EXIT WHEN c_pending%NOTFOUND;
+            SELECT NVL(MAX(log_id), 0) + 1 INTO v_lid FROM audit_logs;
+            INSERT INTO audit_logs(log_id, table_name, record_id, action, old_value, new_value)
+            VALUES (v_lid, 'rentals', v_rental_id, 'AUDIT_PENDING',
+                    NULL, 'Pending amount: ' || TO_CHAR(v_amount));
+            p_processed := p_processed + 1;
+        END LOOP;
+        CLOSE c_pending;
+    END;
+
+END pkg_rentals;
+/

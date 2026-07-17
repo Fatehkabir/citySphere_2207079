@@ -314,4 +314,49 @@ function update_report_status(string $policeNid, int $reportId, string $action):
     );
 }
 
+//---------------------------------------------------------------
+function get_rentals(?string $nid = null): array {
+    if ($nid === null) {
+        return fetch_cursor('BEGIN pkg_rentals.sp_get_all_rentals(:cur); END;');
+    }
+    return fetch_cursor(
+        'BEGIN pkg_rentals.sp_get_my_rentals(:nid, :cur); END;',
+        ['nid' => $nid]
+    );
+}
+
+function assign_renter(string $ownerNid, int $rentalId, int $buildingId,
+                        string $renterNid, string $unitNo, float $amount): void {
+    run_plsql(
+        'BEGIN pkg_rentals.sp_assign_renter(:o,:rid,:b,:r,:u,:a); END;',
+        ['o'   => $ownerNid,  'rid' => $rentalId,
+         'b'   => $buildingId,'r'   => $renterNid,
+         'u'   => $unitNo,    'a'   => $amount]
+    );
+}
+
+function update_payment_status(string $actorNid, int $rentalId, string $status): void {
+    run_plsql(
+        'BEGIN pkg_rentals.sp_update_payment(:a,:r,:s); END;',
+        ['a' => $actorNid, 'r' => $rentalId, 's' => $status]
+    );
+}
+
+function end_rental(int $rentalId): void {
+    run_plsql(
+        'BEGIN pkg_rentals.sp_end_rental(:r); END;',
+        ['r' => $rentalId]
+    );
+}
+
+function audit_pending_rentals(string $adminNid): int {
+    $out = exec_plsql(
+        'BEGIN pkg_rentals.sp_audit_pending_rentals(:a,:p); END;',
+        ['a' => $adminNid],
+        ['p']
+    );
+    return (int)($out['p'] ?? 0);
+}
+
+
 ?>
