@@ -7,6 +7,12 @@ require_once __DIR__ . '/functions.php';
 function flash(string $msg, string $type='info'):void{
     $_SESSION['flash'][]=['msg'=>$msg,'type'=>$type];
 }
+function pop_flashes(): array {
+    $f = $_SESSION['flash'] ?? [];
+    unset($_SESSION['flash']);
+    return $f;
+}
+
 
 function load_roles_for(int $uid): array {
     $rows = fetch_cursor(
@@ -23,12 +29,6 @@ function login_user(array $user): void {
     $_SESSION['roles'] = load_roles_for((string)$user['NID']);
 }
 
-function grant_role(string $adminNid, string $nid, string $role): void {
-    run_plsql(
-        'BEGIN pkg_auth.sp_grant_role(:a,:u,:r); END;',
-        ['a' => $adminNid, 'u' => $nid, 'r' => $role]
-    );
-}
 
 function revoke_role(string $adminNid, string $nid, string $role): void {
     run_plsql(
@@ -62,7 +62,9 @@ function current_user_nid(): ?string {
     return ($u && isset($u['NID'])) ? (string)$u['NID'] : null;
 }
 
-
+function e(mixed $s): string {
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
 
 

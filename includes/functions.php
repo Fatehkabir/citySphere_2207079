@@ -96,6 +96,31 @@ function run_plsql(string $sql, array $binds = []): void {
     oci_free_statement($stmt);
 }
 
+//---------------------------------------------------------------
+
+function make_clob(string $text): OCILob {
+    $lob = oci_new_descriptor(db(), OCI_D_LOB);
+    $lob->writetemporary($text, OCI_TEMP_CLOB);
+    return $lob;
+}
+
+//---------------------------------------------------------------
+
+function authenticate(string $email, string $password): ?array {
+    $rows = fetch_cursor(
+        'BEGIN pkg_auth.sp_get_user_by_email(:email, :cur); END;',
+        ['email' => strtolower(trim($email))]
+    );
+    if ($rows && password_verify($password, $rows[0]['PASSWORD_HASH'])) {
+        return $rows[0];
+    }
+    // Legacy plain-text fallback (for seeded admin with bcrypt hash)
+    if ($rows && $password === $rows[0]['PASSWORD_HASH']) {
+        return $rows[0];
+    }
+    return null;
+}
+
 function register_user(string $nid, string $name, string $email,
                         string $pw, ?string $phone): void {
     if (!preg_match('/^[0-9]{6}$/', $nid)) {
@@ -110,7 +135,26 @@ function register_user(string $nid, string $name, string $email,
          'p'   => $phone ?: null]
     );
 }
+function get_user(string $nid): ?array {
+    $rows = fetch_cursor(
+        'BEGIN pkg_auth.sp_get_user_by_nid(:nid, :cur); END;',
+        ['nid' => $nid]
+    );
+    return $rows[0] ?? null;
+}
 
+function update_profile(string $nid, string $name, ?string $phone,
+                         ?string $photo): void {
+    run_plsql(
+        'BEGIN pkg_auth.sp_update_profile(:nid,:n,:p,:photo); END;',
+        ['nid'   => $nid,
+         'n'     => $name,
+         'p'     => $phone ?: null,
+         'photo' => $photo ?: null]
+    );
+}
+
+//---------------------------------------------------------------
 
 
 function get_dashboard_stats(): array {
