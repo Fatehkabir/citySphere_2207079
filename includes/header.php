@@ -35,15 +35,7 @@ $page  = basename($_SERVER['PHP_SELF']);
     </nav>
     <div class="userbox">
       <a href="profile.php" class="who" style="display:flex;align-items:center;gap:6px;text-decoration:none">
-        <?php if (!empty($user['PROFILE_PHOTO'])): ?>
-          <img src="public/uploads/<?= e($user['PROFILE_PHOTO']) ?>" alt="Photo"
-               style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid #cbd5e1">
-        <?php else: ?>
-          <div style="width:26px;height:26px;border-radius:50%;background:#e0f2fe;color:#0284c7;
-                      display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;border:1px solid #bae6fd">
-            <?= strtoupper(substr($user['FULL_NAME'], 0, 1)) ?>
-          </div>
-        <?php endif; ?>
+        <span style="font-size:1.2rem;line-height:1">👤</span>
         <?= e($user['FULL_NAME']) ?>
       </a>
       <?php foreach ($roles as $r): ?>

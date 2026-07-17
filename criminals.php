@@ -55,7 +55,7 @@ include __DIR__ . '/includes/header.php';
       </select>
     </div>
     <div class="row"><label>Offense <span style="color:#e53e3e">*</span></label>
-      <input name="offense" required placeholder="Describe the offense"></div>
+      <input type="text" name="offense" required placeholder="Describe the offense"></div>
     <div class="row"><label>Description</label>
       <textarea name="description" rows="3" placeholder="Additional details..."></textarea></div>
     <button class="btn-primary">Add Record</button>

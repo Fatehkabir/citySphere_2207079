@@ -26,9 +26,9 @@ include __DIR__ . '/includes/header.php';
     <div class="row"><label>Area ID <span style="color:#e53e3e">*</span> <small>(unique number you choose)</small></label>
       <input type="number" name="area_id" required min="1" placeholder="e.g. 10"></div>
     <div class="row"><label>Area Name <span style="color:#e53e3e">*</span></label>
-      <input name="name" required placeholder="e.g. Gulshan"></div>
+      <input type="text" name="name" required placeholder="e.g. Gulshan"></div>
     <div class="row"><label>City <span style="color:#e53e3e">*</span></label>
-      <input name="city" required placeholder="e.g. Dhaka"></div>
+      <input type="text" name="city" required placeholder="e.g. Dhaka"></div>
     <button class="btn-primary">Add Area</button>
   </form>
 </div>

@@ -41,9 +41,9 @@ include __DIR__ . '/includes/header.php';
     <div class="row"><label>Building ID <span style="color:#e53e3e">*</span> <small>(unique number you choose)</small></label>
       <input type="number" name="building_id" required min="1" placeholder="e.g. 101"></div>
     <div class="row"><label>Building Name <span style="color:#e53e3e">*</span></label>
-      <input name="name" required></div>
+      <input type="text" name="name" required></div>
     <div class="row"><label>Address <span style="color:#e53e3e">*</span></label>
-      <input name="address" required></div>
+      <input type="text" name="address" required></div>
     <div class="row">
       <label>Area <span style="color:#e53e3e">*</span></label>
       <select name="area_id" required>

@@ -74,7 +74,7 @@ include __DIR__ . '/includes/header.php';
         <?php endforeach; ?>
       </select>
     </div>
-    <div class="row"><label>Unit No.</label><input name="unit_no" placeholder="e.g. 3A" required></div>
+    <div class="row"><label>Unit No.</label><input type="text" name="unit_no" placeholder="e.g. 3A" required></div>
     <div class="row"><label>Monthly Rent (৳)</label><input type="number" step="0.01" name="amount" required></div>
     <button class="btn-primary">Assign Renter</button>
   </form>

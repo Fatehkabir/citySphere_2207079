@@ -114,7 +114,6 @@ function authenticate(string $email, string $password): ?array {
     if ($rows && password_verify($password, $rows[0]['PASSWORD_HASH'])) {
         return $rows[0];
     }
-    // Legacy plain-text fallback (for seeded admin with bcrypt hash)
     if ($rows && $password === $rows[0]['PASSWORD_HASH']) {
         return $rows[0];
     }
@@ -400,6 +399,27 @@ function audit_pending_rentals(string $adminNid): int {
         ['p']
     );
     return (int)($out['p'] ?? 0);
+}
+
+//---------------------------------------------------------------
+
+function get_all_users(): array {
+    return fetch_cursor('BEGIN pkg_users.sp_get_all_users_with_roles(:cur); END;');
+}
+
+function get_users_list(): array {
+    return fetch_cursor('BEGIN pkg_users.sp_get_users(:cur); END;');
+}
+
+function get_house_owners(): array {
+    return fetch_cursor('BEGIN pkg_users.sp_get_house_owners(:cur); END;');
+}
+
+function grant_role(string $adminNid, string $nid, string $role): void {
+    run_plsql(
+        'BEGIN pkg_auth.sp_grant_role(:a,:u,:r); END;',
+        ['a' => $adminNid, 'u' => $nid, 'r' => $role]
+    );
 }
 
 
