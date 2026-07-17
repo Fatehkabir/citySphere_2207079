@@ -6,21 +6,30 @@ $nid      = current_user_nid();
 $is_admin = has_role('admin');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $is_admin) {
-    $annId   = (int)trim($_POST['announcement_id'] ?? 0);
-    $title   = trim($_POST['title']   ?? '');
-    $content = trim($_POST['content'] ?? '');
-    $role    = $_POST['target_role']  ?? 'all';
-    $allowed = ['all','user','house_owner','police','admin'];
-    if (!$annId) {
-        flash('Announcement ID is required.', 'error');
-    } elseif (!$title || !$content) {
-        flash('Title and content are required.', 'error');
-    } elseif (!in_array($role, $allowed)) {
-        flash('Invalid target role.', 'error');
-    } else {
+    if (isset($_POST['post_announcement'])) {
+        $annId   = (int)trim($_POST['announcement_id'] ?? 0);
+        $title   = trim($_POST['title']   ?? '');
+        $content = trim($_POST['content'] ?? '');
+        $role    = $_POST['target_role']  ?? 'all';
+        $allowed = ['all','user','house_owner','police','admin'];
+        if (!$annId) {
+            flash('Announcement ID is required.', 'error');
+        } elseif (!$title || !$content) {
+            flash('Title and content are required.', 'error');
+        } elseif (!in_array($role, $allowed)) {
+            flash('Invalid target role.', 'error');
+        } else {
+            try {
+                post_announcement($annId, $title, $content, $role, $nid);
+                flash('Announcement posted.', 'success');
+            } catch (Throwable $e) { flash($e->getMessage(), 'error'); }
+        }
+    } elseif (isset($_POST['delete_announcement'])) {
+        $annId = (int)trim($_POST['announcement_id'] ?? 0);
         try {
-            post_announcement($annId, $title, $content, $role, $nid);
-            flash('Announcement posted.', 'success');
+            if (!$annId) throw new RuntimeException('Announcement ID is required.');
+            delete_announcement($nid, $annId);
+            flash('Announcement deleted.', 'success');
         } catch (Throwable $e) { flash($e->getMessage(), 'error'); }
     }
     header('Location: announcements.php'); exit;
@@ -38,6 +47,7 @@ include __DIR__ . '/includes/header.php';
 <div class="card">
   <h2>Post New Announcement</h2>
   <form method="post">
+    <input type="hidden" name="post_announcement" value="1">
     <div class="row"><label>Announcement ID <span style="color:#e53e3e">*</span> <small>(unique number you choose)</small></label>
       <input type="number" name="announcement_id" required min="1" placeholder="e.g. 5001"></div>
     <div class="row"><label>Title <span style="color:#e53e3e">*</span></label>
@@ -68,9 +78,19 @@ include __DIR__ . '/includes/header.php';
     <div class="card announcement-card" style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <h3 style="margin:0"><?= e($a['TITLE']) ?></h3>
-        <span class="badge b-<?= $a['TARGET_ROLE'] === 'all' ? 'verified' : 'pending' ?>">
-          <?= e(ucfirst($a['TARGET_ROLE'])) ?>
-        </span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge b-<?= $a['TARGET_ROLE'] === 'all' ? 'verified' : 'pending' ?>">
+            <?= e(ucfirst($a['TARGET_ROLE'])) ?>
+          </span>
+          <?php if ($is_admin): ?>
+            <form method="post" class="inline-form" style="margin:0"
+                  onsubmit="return confirm('Delete this announcement? This cannot be undone.')">
+              <input type="hidden" name="delete_announcement" value="1">
+              <input type="hidden" name="announcement_id" value="<?= (int)$a['ID'] ?>">
+              <button type="submit" class="btn-danger" style="padding:3px 10px;font-size:.78rem">Delete</button>
+            </form>
+          <?php endif; ?>
+        </div>
       </div>
       <p class="muted" style="font-size:.85rem;margin-bottom:10px">
         Posted by <strong><?= e($a['AUTHOR']) ?></strong> on <?= e($a['TS']) ?>

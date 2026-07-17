@@ -1,4 +1,4 @@
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_auth AS
     FUNCTION  fn_has_role(p_nid VARCHAR2, p_role VARCHAR2) RETURN NUMBER;
     PROCEDURE sp_register_user(
@@ -16,7 +16,7 @@ CREATE OR REPLACE PACKAGE pkg_auth AS
 END pkg_auth;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_auth AS
 
     FUNCTION fn_has_role(p_nid VARCHAR2, p_role VARCHAR2) RETURN NUMBER IS
@@ -95,7 +95,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_auth AS
 END pkg_auth;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_users AS
     PROCEDURE sp_get_all_users_with_roles(p_cur OUT SYS_REFCURSOR);
     PROCEDURE sp_get_users(p_cur OUT SYS_REFCURSOR);
@@ -103,7 +103,7 @@ CREATE OR REPLACE PACKAGE pkg_users AS
 END pkg_users;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_users AS
 
     PROCEDURE sp_get_all_users_with_roles(p_cur OUT SYS_REFCURSOR) IS
@@ -135,13 +135,15 @@ CREATE OR REPLACE PACKAGE BODY pkg_users AS
 END pkg_users;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_city AS
     PROCEDURE sp_get_areas(p_cur OUT SYS_REFCURSOR);
     PROCEDURE sp_get_area_list(p_cur OUT SYS_REFCURSOR);
     PROCEDURE sp_add_area(
         p_admin_nid IN VARCHAR2, p_area_id IN NUMBER,
         p_name IN VARCHAR2, p_city IN VARCHAR2);
+    PROCEDURE sp_delete_area(
+        p_admin_nid IN VARCHAR2, p_area_id IN NUMBER);
     PROCEDURE sp_get_buildings(p_owner_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
     PROCEDURE sp_get_building_list(p_owner_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
     PROCEDURE sp_add_building(
@@ -149,10 +151,16 @@ CREATE OR REPLACE PACKAGE pkg_city AS
         p_name       IN VARCHAR2, p_address     IN VARCHAR2,
         p_area_id    IN NUMBER,   p_owner_nid   IN VARCHAR2,
         p_units      IN NUMBER);
+    PROCEDURE sp_update_building(
+        p_admin_nid  IN VARCHAR2, p_building_id IN NUMBER,
+        p_name       IN VARCHAR2, p_address     IN VARCHAR2,
+        p_units      IN NUMBER);
+    PROCEDURE sp_delete_building(
+        p_admin_nid IN VARCHAR2, p_building_id IN NUMBER);
 END pkg_city;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_city AS
 
     PROCEDURE sp_get_areas(p_cur OUT SYS_REFCURSOR) IS
@@ -231,10 +239,66 @@ CREATE OR REPLACE PACKAGE BODY pkg_city AS
         VALUES (p_building_id, p_name, p_address, p_area_id, p_owner_nid, NVL(p_units,1));
     END;
 
+    PROCEDURE sp_delete_area(
+        p_admin_nid IN VARCHAR2, p_area_id IN NUMBER)
+    IS
+        v_bcount NUMBER;
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20002,'Only admin can manage areas');
+        END IF;
+        SELECT COUNT(*) INTO v_bcount FROM buildings WHERE area_id = p_area_id;
+        IF v_bcount > 0 THEN
+            RAISE_APPLICATION_ERROR(-20040,'Cannot delete area: it still has buildings assigned to it.');
+        END IF;
+        DELETE FROM areas WHERE area_id = p_area_id;
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20041,'Area not found.');
+        END IF;
+    END;
+
+    PROCEDURE sp_update_building(
+        p_admin_nid  IN VARCHAR2, p_building_id IN NUMBER,
+        p_name       IN VARCHAR2, p_address     IN VARCHAR2,
+        p_units      IN NUMBER)
+    IS
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20003,'Only admin can update buildings');
+        END IF;
+        UPDATE buildings
+           SET name        = p_name,
+               address     = p_address,
+               total_units = NVL(p_units, total_units)
+         WHERE building_id = p_building_id;
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20042,'Building not found.');
+        END IF;
+    END;
+
+    PROCEDURE sp_delete_building(
+        p_admin_nid IN VARCHAR2, p_building_id IN NUMBER)
+    IS
+        v_rcount NUMBER;
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20003,'Only admin can delete buildings');
+        END IF;
+        SELECT COUNT(*) INTO v_rcount FROM rentals WHERE building_id = p_building_id AND status = 'active';
+        IF v_rcount > 0 THEN
+            RAISE_APPLICATION_ERROR(-20044,'Cannot delete building: it has active rentals.');
+        END IF;
+        DELETE FROM rentals WHERE building_id = p_building_id;
+        DELETE FROM buildings WHERE building_id = p_building_id;
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20042,'Building not found.');
+        END IF;
+    END;
+
 END pkg_city;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_rentals AS
     PROCEDURE sp_assign_renter(
         p_owner_nid   IN VARCHAR2, p_rental_id   IN NUMBER,
@@ -250,7 +314,7 @@ CREATE OR REPLACE PACKAGE pkg_rentals AS
 END pkg_rentals;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_rentals AS
 
     PROCEDURE sp_assign_renter(
@@ -367,7 +431,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_rentals AS
 END pkg_rentals;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_reports AS
     PROCEDURE sp_file_report(
         p_report_id   IN NUMBER,  p_reporter_nid IN VARCHAR2,
@@ -382,7 +446,7 @@ CREATE OR REPLACE PACKAGE pkg_reports AS
 END pkg_reports;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_reports AS
 
     PROCEDURE sp_file_report(
@@ -475,7 +539,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_reports AS
 END pkg_reports;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_criminals AS
     PROCEDURE sp_add_criminal_record(
         p_police_nid IN VARCHAR2, p_record_id  IN NUMBER,
@@ -486,7 +550,7 @@ CREATE OR REPLACE PACKAGE pkg_criminals AS
 END pkg_criminals;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_criminals AS
 
     PROCEDURE sp_add_criminal_record(
@@ -538,7 +602,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_criminals AS
 END pkg_criminals;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_dashboard AS
     PROCEDURE sp_get_dashboard_stats(
         p_total_reports   OUT NUMBER, p_pending_reports OUT NUMBER,
@@ -547,7 +611,7 @@ CREATE OR REPLACE PACKAGE pkg_dashboard AS
 END pkg_dashboard;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_dashboard AS
 
     PROCEDURE sp_get_dashboard_stats(
@@ -576,16 +640,18 @@ CREATE OR REPLACE PACKAGE BODY pkg_dashboard AS
 END pkg_dashboard;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE pkg_announcements AS
     PROCEDURE sp_post_announcement(
         p_id IN NUMBER, p_title IN VARCHAR2, p_content IN CLOB,
         p_target_role IN VARCHAR2, p_created_by IN VARCHAR2);
     PROCEDURE sp_get_announcements_for_user(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
+    PROCEDURE sp_delete_announcement(
+        p_admin_nid IN VARCHAR2, p_id IN NUMBER);
 END pkg_announcements;
 /
 
--- -------------------------
+-- ===================================================================
 CREATE OR REPLACE PACKAGE BODY pkg_announcements AS
 
     PROCEDURE sp_post_announcement(
@@ -615,6 +681,19 @@ CREATE OR REPLACE PACKAGE BODY pkg_announcements AS
                        SELECT role FROM user_roles WHERE user_nid = p_nid
                    )
              ORDER BY a.created_at DESC;
+    END;
+
+    PROCEDURE sp_delete_announcement(
+        p_admin_nid IN VARCHAR2, p_id IN NUMBER)
+    IS
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20016,'Only admin can delete announcements');
+        END IF;
+        DELETE FROM announcements WHERE id = p_id;
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20043,'Announcement not found.');
+        END IF;
     END;
 
 END pkg_announcements;

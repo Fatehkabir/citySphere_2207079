@@ -18,14 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (isset($_POST['pay'])) {
             update_payment_status($nid, (int)$_POST['rental_id'], $_POST['status']);
             flash('Payment status updated.', 'success');
-
-        } elseif (isset($_POST['end_rental'])) {
-            end_rental((int)$_POST['rental_id']);
-            flash('Rental ended.', 'success');
-
-        } elseif (isset($_POST['audit_rentals']) && has_role('admin')) {
-            $count = audit_pending_rentals($nid);
-            flash("PL/SQL cursor audit complete. Processed $count pending rentals.", 'success');
         }
     } catch (Throwable $e) { flash($e->getMessage(), 'error'); }
     header('Location: rentals.php'); exit;
@@ -38,13 +30,6 @@ include __DIR__ . '/includes/header.php';
 ?>
 <div class="toolbar">
   <h1>Rentals</h1>
-  <?php if (has_role('admin')): ?>
-    <form method="post" class="inline-form" style="margin:0">
-      <button type="submit" name="audit_rentals" value="1" class="btn">
-        ▶ Run PL/SQL Cursor Audit
-      </button>
-    </form>
-  <?php endif; ?>
 </div>
 
 <?php if (has_role('house_owner') || has_role('admin')): ?>
@@ -115,11 +100,6 @@ include __DIR__ . '/includes/header.php';
                 <option value="<?= $s ?>" <?= $s===$r['PAYMENT_STATUS']?'selected':'' ?>><?= $s ?></option>
               <?php endforeach; ?>
             </select>
-            <?php if (has_role('house_owner') || has_role('admin')): ?>
-              <button type="submit" name="end_rental" value="1" class="btn-danger"
-                      style="padding:4px 8px;font-size:.75rem"
-                      onclick="return confirm('End this rental?')">End</button>
-            <?php endif; ?>
           </form>
           <?php endif; ?>
         </td>

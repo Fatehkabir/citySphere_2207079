@@ -31,7 +31,7 @@ include __DIR__ . '/includes/header.php';
     <div class="row"><label>Report ID <span style="color:#e53e3e">*</span> <small>(unique number you choose)</small></label>
       <input type="number" name="report_id" required min="1" placeholder="e.g. 2001"></div>
     <div class="row"><label>Title <span style="color:#e53e3e">*</span></label>
-      <input name="title" type="text" required maxlength="200" placeholder="Brief description of the incident"></div>
+      <input type="text" name="title" required maxlength="200" placeholder="Brief description of the incident"></div>
     <div class="row">
       <label>Area <span style="color:#e53e3e">*</span></label>
       <select name="area_id" required>

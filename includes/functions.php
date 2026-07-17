@@ -193,6 +193,12 @@ function add_area(string $adminNid, int $areaId, string $name, string $city): vo
         ['a' => $adminNid, 'aid' => $areaId, 'n' => $name, 'c' => $city]
     );
 }
+function delete_area(string $adminNid, int $areaId): void {
+    run_plsql(
+        'BEGIN pkg_city.sp_delete_area(:a,:aid); END;',
+        ['a' => $adminNid, 'aid' => $areaId]
+    );
+}
 
 //---------------------------------------------------------------
 
@@ -230,6 +236,12 @@ function post_announcement(int $annId, string $title, string $content,
 }
 
 
+function delete_announcement(string $adminNid, int $annId): void {
+    run_plsql(
+        'BEGIN pkg_announcements.sp_delete_announcement(:a,:id); END;',
+        ['a' => $adminNid, 'id' => $annId]
+    );
+}
 
 //---------------------------------------------------------------
 function get_buildings(?string $ownerNid = null): array {
@@ -259,6 +271,24 @@ function add_building(string $adminNid, int $buildingId, string $name,
          'u'   => $units]
     );
 }
+
+function update_building(string $adminNid, int $buildingId, string $name,
+                          string $address, int $units): void {
+    run_plsql(
+        'BEGIN pkg_city.sp_update_building(:a,:bid,:n,:addr,:u); END;',
+        ['a'   => $adminNid, 'bid' => $buildingId,
+         'n'   => $name,     'addr' => $address,
+         'u'   => $units]
+    );
+}
+
+function delete_building(string $adminNid, int $buildingId): void {
+    run_plsql(
+        'BEGIN pkg_city.sp_delete_building(:a,:bid); END;',
+        ['a' => $adminNid, 'bid' => $buildingId]
+    );
+}
+
 //---------------------------------------------------------------
 function get_criminal_records(?string $nid = null): array {
     if ($nid === null) {
