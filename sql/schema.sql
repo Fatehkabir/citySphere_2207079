@@ -128,3 +128,17 @@ CREATE TABLE announcements (
     CONSTRAINT chk_target       CHECK (target_role IN ('all','user','house_owner','police','admin'))
 );
 
+CREATE OR REPLACE TRIGGER trg_rental_payment_audit
+  AFTER UPDATE OF payment_status ON rentals
+  FOR EACH ROW
+DECLARE
+  v_lid NUMBER;
+BEGIN
+  IF :OLD.payment_status <> :NEW.payment_status THEN
+    SELECT NVL(MAX(log_id), 0) + 1 INTO v_lid FROM audit_logs;
+    INSERT INTO audit_logs(log_id, table_name, record_id, action, old_value, new_value)
+    VALUES (v_lid, 'rentals', :NEW.rental_id, 'UPDATE_PAYMENT_STATUS',
+            :OLD.payment_status, :NEW.payment_status);
+  END IF;
+END;
+/
