@@ -243,6 +243,29 @@ function delete_announcement(string $adminNid, int $annId): void {
     );
 }
 
+function update_announcement(string $adminNid, int $annId, string $title,
+                              string $content, string $role): void {
+    $conn = db();
+    $stmt = oci_parse($conn,
+        'BEGIN pkg_announcements.sp_update_announcement(:a,:id,:t,:c,:r); END;');
+    $aL = $adminNid; $idL = $annId; $tL = $title; $rL = $role;
+    oci_bind_by_name($stmt, ':a',  $aL);
+    oci_bind_by_name($stmt, ':id', $idL);
+    oci_bind_by_name($stmt, ':t',  $tL);
+    oci_bind_by_name($stmt, ':r',  $rL);
+    $cLob = make_clob($content);
+    oci_bind_by_name($stmt, ':c', $cLob, -1, OCI_B_CLOB);
+    if (!oci_execute($stmt, OCI_DEFAULT)) {
+        $e = oci_error($stmt);
+        $cLob->close();
+        oci_free_statement($stmt);
+        throw new RuntimeException('update_announcement: ' . $e['message']);
+    }
+    oci_commit($conn);
+    $cLob->close();
+    oci_free_statement($stmt);
+}
+
 //---------------------------------------------------------------
 function get_buildings(?string $ownerNid = null): array {
     $owner = $ownerNid;

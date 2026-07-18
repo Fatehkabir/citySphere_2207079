@@ -58,7 +58,6 @@ $areas     = get_area_list();
 $owners    = get_house_owners();
 $buildings = get_buildings(has_role('admin') ? null : $nid);
 
-// Pre-fill edit form if ?edit=ID is passed
 $editBuilding = null;
 if (isset($_GET['edit']) && has_role('admin')) {
     $editId = (int)$_GET['edit'];

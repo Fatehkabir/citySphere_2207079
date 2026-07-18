@@ -279,20 +279,22 @@ CREATE OR REPLACE PACKAGE BODY pkg_city AS
     PROCEDURE sp_delete_building(
         p_admin_nid IN VARCHAR2, p_building_id IN NUMBER)
     IS
-        v_rcount NUMBER;
+        v_rcount  NUMBER;
+        v_bcount  NUMBER;
     BEGIN
         IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
             RAISE_APPLICATION_ERROR(-20003,'Only admin can delete buildings');
+        END IF;
+        SELECT COUNT(*) INTO v_bcount FROM buildings WHERE building_id = p_building_id;
+        IF v_bcount = 0 THEN
+            RAISE_APPLICATION_ERROR(-20042,'Building not found.');
         END IF;
         SELECT COUNT(*) INTO v_rcount FROM rentals WHERE building_id = p_building_id AND status = 'active';
         IF v_rcount > 0 THEN
             RAISE_APPLICATION_ERROR(-20044,'Cannot delete building: it has active rentals.');
         END IF;
-        DELETE FROM rentals WHERE building_id = p_building_id;
+        DELETE FROM rentals  WHERE building_id = p_building_id;
         DELETE FROM buildings WHERE building_id = p_building_id;
-        IF SQL%ROWCOUNT = 0 THEN
-            RAISE_APPLICATION_ERROR(-20042,'Building not found.');
-        END IF;
     END;
 
 END pkg_city;
@@ -470,7 +472,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_reports AS
                         ELSE u.full_name END AS reporter,
                    TO_CHAR(r.created_at,'YYYY-MM-DD HH24:MI') AS ts
               FROM crime_reports r
-              LEFT JOIN areas a ON a.area_id    = r.area_id
+              LEFT JOIN areas a ON a.area_id  = r.area_id
               LEFT JOIN users u ON u.nid        = r.reporter_nid
              ORDER BY r.created_at DESC;
     END;
@@ -645,6 +647,9 @@ CREATE OR REPLACE PACKAGE pkg_announcements AS
     PROCEDURE sp_post_announcement(
         p_id IN NUMBER, p_title IN VARCHAR2, p_content IN CLOB,
         p_target_role IN VARCHAR2, p_created_by IN VARCHAR2);
+    PROCEDURE sp_update_announcement(
+        p_admin_nid IN VARCHAR2, p_id IN NUMBER,
+        p_title IN VARCHAR2, p_content IN CLOB, p_target_role IN VARCHAR2);
     PROCEDURE sp_get_announcements_for_user(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR);
     PROCEDURE sp_delete_announcement(
         p_admin_nid IN VARCHAR2, p_id IN NUMBER);
@@ -664,6 +669,26 @@ CREATE OR REPLACE PACKAGE BODY pkg_announcements AS
         END IF;
         INSERT INTO announcements(id, title, content, target_role, created_by)
         VALUES (p_id, p_title, p_content, p_target_role, p_created_by);
+    END;
+
+    PROCEDURE sp_update_announcement(
+        p_admin_nid IN VARCHAR2, p_id IN NUMBER,
+        p_title IN VARCHAR2, p_content IN CLOB, p_target_role IN VARCHAR2)
+    IS
+        v_count NUMBER;
+    BEGIN
+        IF pkg_auth.fn_has_role(p_admin_nid,'admin') = 0 THEN
+            RAISE_APPLICATION_ERROR(-20016,'Only admin can update announcements');
+        END IF;
+        SELECT COUNT(*) INTO v_count FROM announcements WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20045,'Announcement not found.');
+        END IF;
+        UPDATE announcements
+           SET title       = p_title,
+               content     = p_content,
+               target_role = p_target_role
+         WHERE id = p_id;
     END;
 
     PROCEDURE sp_get_announcements_for_user(p_nid IN VARCHAR2, p_cur OUT SYS_REFCURSOR) IS

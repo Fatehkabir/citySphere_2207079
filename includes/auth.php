@@ -14,10 +14,10 @@ function pop_flashes(): array {
 }
 
 
-function load_roles_for(int $uid): array {
+function load_roles_for(string $nid): array {
     $rows = fetch_cursor(
-        'BEGIN pkg_auth.sp_get_roles_for_user(:uid, :cur); END;',
-        ['uid' => $uid]
+        'BEGIN pkg_auth.sp_get_roles_for_user(:nid, :cur); END;',
+        ['nid' => $nid]
     );
     return array_column($rows, 'ROLE');
 }
